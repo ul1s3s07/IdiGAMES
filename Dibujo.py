@@ -86,7 +86,7 @@ while True:
     combined_frame = cv2.addWeighted(frame, 0.5, drawing_canvas, 0.5, 0)
 
     # Mostrar la salida
-    cv2.imshow('Dibujar con el dedo', combined_frame)
+    cv2.imshow('DibujAR', combined_frame)
 
     # Salir con la tecla ESC
     if cv2.waitKey(1) & 0xFF == 27:  # Tecla ESC
