@@ -13,6 +13,17 @@ drawing_canvas = None  # El lienzo se creará dinámicamente según el tamaño d
 # Variables para el dibujo
 drawing = False
 prev_x, prev_y = None, None  # Posiciones previas del dedo índice
+brush_color = (255, 0, 0)  # Color inicial (rojo)
+
+# Colores disponibles y sus posiciones en la barra de selección
+colors = {
+    (0, 0, 255): (50, 50),  # Rojo
+    (0, 255, 0): (150, 50),  # Verde
+    (255, 0, 0): (250, 50),  # Azul
+    (0, 255, 255): (350, 50),  # Amarillo
+    (255, 255, 255): (450, 50),  # Blanco
+    (0, 0, 0): (550, 50),  # Negro
+}
 
 # Funciones para determinar el estado de la mano
 def mano_esta_cerrada(hand_landmarks):
@@ -50,10 +61,14 @@ while True:
 
     # Preparar la imagen para Mediapipe
     frame = cv2.flip(frame, 1)  # Espejo
-    # Aplicamos un factor de oscurecimiento (por ejemplo, 0.4)
-    frame = cv2.convertScaleAbs(frame, alpha=0.4, beta=0)
     image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(image_rgb)
+
+    # Dibujar barra de selección de colores
+    for color, (x, y) in colors.items():
+        cv2.circle(frame, (x, y), 20, color, -1)
+        if color == brush_color:
+            cv2.circle(frame, (x, y), 25, (255, 255, 255), 2)  # Resaltar el color seleccionado
 
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
@@ -74,10 +89,15 @@ while True:
             else:
                 drawing = True  # Permitir el dibujo
 
+            # Verificar si el dedo índice selecciona un color
+            for color, (x, y) in colors.items():
+                if (x - 20) < index_x < (x + 20) and (y - 20) < index_y < (y + 20):
+                    brush_color = color
+
             # Dibujar si el dedo índice está activo y en movimiento
             if drawing:
                 if prev_x is not None and prev_y is not None:
-                    cv2.line(drawing_canvas, (prev_x, prev_y), (index_x, index_y), (255, 0, 0), 5)
+                    cv2.line(drawing_canvas, (prev_x, prev_y), (index_x, index_y), brush_color, 5)
                 prev_x, prev_y = index_x, index_y
             else:
                 prev_x, prev_y = None, None  # Resetear la posición previa cuando no se dibuja
@@ -89,7 +109,7 @@ while True:
     cv2.imshow('Dibujar con el dedo', combined_frame)
 
     # Salir con la tecla ESC
-    if cv2.waitKey(1) & 0xFF == 27:  # Tecla ESC
+    if cv2.waitKey(1) & 0xFF == 27:
         break
 
 # Liberar recursos
