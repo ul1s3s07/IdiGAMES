@@ -2,6 +2,7 @@ import pygame
 import cv2
 import mediapipe as mp
 import random
+import numpy as np
 
 # Inicialización de Pygame
 pygame.init()
@@ -11,10 +12,15 @@ screen_width, screen_height = 1280, 720
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Clasificación de Residuos")
 
+# Configuración del margen
+margen = 50
+
 # Cargar imágenes de residuos (deben ser PNG con fondo transparente)
 residuos = ['img/botella.png', 'img/lata.png', 'img/papel.png']  # Asegúrate de que las rutas sean correctas
 residuos_imgs = [pygame.transform.scale(pygame.image.load(res).convert_alpha(), (80, 80)) for res in residuos]
-residuos_pos = [(random.randint(50, screen_width - 100), random.randint(50, 100)) for _ in residuos]
+
+# Ajustar las posiciones iniciales para que respeten el margen
+residuos_pos = [(random.randint(margen, screen_width - 80 - margen), random.randint(margen, 100)) for _ in residuos]
 
 # Cargar imágenes de cestos
 cestos_imgs = {
@@ -32,7 +38,7 @@ cestos_rects = {
 
 # Configuración de la cámara y Mediapipe
 cap = cv2.VideoCapture(0)
-mp_hands = mp.solutions.hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+mp_hands = mp.solutions.hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
 
 # Variables de control
 residuos_clasificados = [False] * len(residuos)
@@ -65,6 +71,7 @@ def verificar_clasificacion(mano_pos, residuos_index):
 
 # Función para determinar si la mano está cerrada (puño)
 def mano_esta_cerrada(hand_landmarks):
+    # Verificar el estado del índice y el pulgar
     indice_abierto = hand_landmarks.landmark[8].y < hand_landmarks.landmark[6].y
     pulgar_abierto = hand_landmarks.landmark[4].x < hand_landmarks.landmark[3].x
     return not (indice_abierto or pulgar_abierto)
@@ -85,13 +92,14 @@ while running:
     # Voltear la imagen de la cámara horizontalmente (para simular un espejo)
     image = cv2.flip(image, 1)
 
-    # Procesar la imagen con Mediapipe
+    # Convertir la imagen a formato RGB
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Procesar la imagen con Mediapipe
     results = mp_hands.process(image_rgb)
 
-    # Mostrar imagen de la cámara como fondo
-    frame_surface = pygame.surfarray.make_surface(image_rgb)
-    frame_surface = pygame.transform.rotate(frame_surface, -90)
+    # Convertir la imagen de nuevo a formato para Pygame
+    frame_surface = pygame.surfarray.make_surface(np.transpose(image_rgb, (1, 0, 2)))
     frame_surface = pygame.transform.scale(frame_surface, (screen_width, screen_height))
     screen.blit(frame_surface, (0, 0))
 
@@ -106,9 +114,8 @@ while running:
     # Si se detectan manos
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
-            # Invertir el eje X de la posición de la mano para corregir el movimiento
-            mano_pos = (screen_width - int(hand_landmarks.landmark[9].x * screen_width), 
-                        int(hand_landmarks.landmark[9].y * screen_height))
+            # Extraer las coordenadas de la palma (punto 9 de la mano)
+            mano_pos = (int((1 - hand_landmarks.landmark[9].x) * screen_width), int(hand_landmarks.landmark[9].y * screen_height))
             puño_cerrado = mano_esta_cerrada(hand_landmarks)
             
             # Verificar si se mueve algún residuo
@@ -125,7 +132,7 @@ while running:
                                 clasificacion_correcta[i] = True
                             else:
                                 print("Clasificación incorrecta. Inténtalo de nuevo.")
-                                residuos_pos[i] = (random.randint(50, screen_width - 100), random.randint(50, 100))
+                                residuos_pos[i] = (random.randint(margen, screen_width - 80 - margen), random.randint(margen, 100))
 
             # Actualizar posición de residuos
             residuos_pos = mover_residuo(mano_pos, residuos_pos)
