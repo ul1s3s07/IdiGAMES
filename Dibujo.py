@@ -62,7 +62,7 @@ while True:
     # Preparar la imagen para Mediapipe
     frame = cv2.flip(frame, 1)  # Espejo
     # Aplicamos un factor de oscurecimiento (por ejemplo, 0.4)
-    frame = cv2.convertScaleAbs(frame, alpha=0.4, beta=0)
+    frame = cv2.convertScaleAbs(frame, alpha=0.5, beta=0)
     image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(image_rgb)
 
