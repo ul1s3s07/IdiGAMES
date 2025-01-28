@@ -25,6 +25,10 @@ colors = {
     (0, 0, 0): (550, 50),  # Negro
 }
 
+# Configurar la ventana en pantalla completa
+cv2.namedWindow('DibujAR', cv2.WND_PROP_FULLSCREEN)
+cv2.setWindowProperty('DibujAR', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
 # Funciones para determinar el estado de la mano
 def mano_esta_cerrada(hand_landmarks):
     """Determina si la mano está cerrada (puño)."""
